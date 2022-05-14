@@ -1,0 +1,75 @@
+﻿@page "/roles"
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using BlazorAdminPanel.Model;
+@inject ISnackbar Snackbar
+@inject ProtectedLocalStorage ProtectedLocalStorage
+@inject IDialogService Dialog
+
+<MudOverlay @bind-Visible="isVisible" DarkBackground="true"/>
+
+<MudButton Variant="Variant.Outlined" OnClick="@(() => NewForm())" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" />
+<MudButton Variant="Variant.Outlined" OnClick="@(async () => await GetAsync())" Size="Size.Small" StartIcon="@Icons.Material.Filled.Refresh" />
+<MudDataGrid Items="@DataRows" Dense="true" Hover="true" Bordered="false" T="IdentityRole" Striped="true">
+    <Columns>
+        <Column T="IdentityRole" Field="Name" Title="Role Name" />
+        <Column T="IdentityRole">
+            <CellTemplate>
+                <MudButton Variant="Variant.Outlined" OnClick="@(() => EditForm(context.Item))" Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit" />
+            </CellTemplate>
+        </Column>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    private bool isVisible;
+    private IEnumerable<User> DataRows = new List<IdentityRole>();
+    private IdentityRole SelectedItem = null;
+    private List<string> _events = new();
+    private IdentityServiceClient service;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    { 
+        var token = await ProtectedLocalStorage.GetAsync<TokenModel>("token");
+        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token))
+        {
+            service = new IdentityServiceClient(token.Value.Token);
+            await GetAsync();
+        }
+        else
+            NavigationManager.NavigateTo("/login");
+    }
+
+    public void SetOverlay(bool value)
+    {
+        isVisible = value;
+        StateHasChanged();
+    }
+
+    async Task GetAsync()
+    {
+        DataRows = (await service.RolesAllAsync()).ToList();
+        SetOverlay(false);
+    }
+
+    void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    void EditForm(IdentityRole role)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Mode", PageOpeningType.Edit);
+        parameters.Add("Data", role);
+        Dialog.Show<Role>("Edit Role", parameters, new DialogOptions() { DisableBackdropClick = true });
+    }
+
+    void NewForm()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Mode", PageOpeningType.New);
+        Dialog.Show<Role>("New Role", parameters, new DialogOptions() { DisableBackdropClick = true });
+    }
+}

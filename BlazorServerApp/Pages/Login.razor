@@ -1,0 +1,48 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ISnackbar Snackbar
+@inject ProtectedLocalStorage ProtectedLocalStorage
+
+<MudOverlay @bind-Visible="isVisible" DarkBackground="true"/>
+<MudGrid>
+    <MudItem xs="12" sm="6" md="4">
+        <MudTextField @bind-Value="Username" Label="Username" Variant="Variant.Text"></MudTextField>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudTextField @bind-Value="Password" Label="Password" Variant="Variant.Text" InputType="InputType.Password"></MudTextField>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudButton OnClick="@(() => LoginAsync())">Login</MudButton>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private bool isVisible;
+    private string Username;
+    private string Password;
+
+    public void SetOverlay(bool value)
+    {
+        isVisible = value;
+        StateHasChanged();
+    }
+
+    private async Task LoginAsync()
+    {
+        SetOverlay(true);
+        var service = new IdentityServiceClient();
+        var token = await service.LoginAsync(new LoginModel
+            {
+                Username = Username,
+                Password = Password
+            });
+        if (token.Token != null && !string.IsNullOrEmpty(token.Token))
+        {
+            await ProtectedLocalStorage.SetAsync("token", token);
+            Snackbar.Add("Login successful", Severity.Success);
+        }
+        else
+            Snackbar.Add($"Login error: {token.Message}", Severity.Error);
+        SetOverlay(false);
+    }
+}

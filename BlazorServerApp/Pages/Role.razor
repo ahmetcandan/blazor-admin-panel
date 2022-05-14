@@ -1,0 +1,63 @@
+﻿@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using BlazorAdminPanel.Model;
+@inject ISnackbar Snackbar
+@inject ProtectedLocalStorage ProtectedLocalStorage
+@inject IDialogService Dialog
+
+<MudDialog>
+    <DialogContent>    
+        <MudItem xs="12" sm="6" md="4">
+        <MudTextField @bind-Value="RoleName" Label="Role" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="string.IsNullOrEmpty(RoleName)">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IdentityServiceClient service;
+    private string RoleName;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public PageOpeningType Mode { get; set; }
+    [Parameter] public IdentityRole Data { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    { 
+        var token = await ProtectedLocalStorage.GetAsync<TokenModel>("token");
+        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token))
+            service = new IdentityServiceClient(token.Value.Token);
+        else
+            NavigationManager.NavigateTo("/login");
+
+        if (Mode == PageOpeningType.Edit)
+            RoleName = Data.Name;
+    }
+
+    void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    async Task Submit()
+    {
+        if (Mode == PageOpeningType.Edit)
+        {
+            await service.RolesPUTAsync(new RoleModel
+            {
+                Id = Data == null ? null : Data.Id,
+                Name = RoleName
+            });
+        }
+        else if (Mode == PageOpeningType.New)
+        {
+            await service.RolesPOSTAsync(new CreateRoleModel
+            {
+                Name = RoleName
+            });
+        }
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}
