@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider/>
+<MudThemeProvider IsDarkMode="false" Theme="_theme" />
 <MudDialogProvider/>
 <MudSnackbarProvider/>
 
@@ -21,3 +21,7 @@
         </article>
     </main>
 </div>
+
+@code{
+    private MudTheme _theme = new();
+}

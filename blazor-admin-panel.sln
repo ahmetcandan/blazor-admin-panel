@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlazorAdminPanel", "BlazorServerApp\BlazorAdminPanel.csproj", "{3CC6E631-CC22-4BC8-AB51-4318F1FA64A6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlazorAdminPanel", "BlazorAdminPanel\BlazorAdminPanel.csproj", "{3CC6E631-CC22-4BC8-AB51-4318F1FA64A6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

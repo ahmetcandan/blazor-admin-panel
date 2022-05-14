@@ -7,15 +7,16 @@
 @inject IDialogService Dialog
 
 <MudOverlay @bind-Visible="isVisible" DarkBackground="true"/>
-
-<MudButton Variant="Variant.Outlined" OnClick="@(() => NewForm())" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" />
-<MudButton Variant="Variant.Outlined" OnClick="@(async () => await GetAsync())" Size="Size.Small" StartIcon="@Icons.Material.Filled.Refresh" />
 <MudDataGrid Items="@DataRows" Dense="true" Hover="true" Bordered="false" T="IdentityRole" Striped="true">
+    <ToolBarContent>
+        <MudFab Color="Color.Primary" OnClick="@(() => NewForm())" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" />
+        <MudFab Color="Color.Primary" OnClick="@(async () => await GetAsync())" StartIcon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
+    </ToolBarContent>
     <Columns>
         <Column T="IdentityRole" Field="Name" Title="Role Name" />
         <Column T="IdentityRole">
             <CellTemplate>
-                <MudButton Variant="Variant.Outlined" OnClick="@(() => EditForm(context.Item))" Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditForm(context.Item))" Size="Size.Small" aria-label="edit"></MudIconButton>
             </CellTemplate>
         </Column>
     </Columns>
@@ -26,7 +27,8 @@
     private IEnumerable<IdentityRole> DataRows = new List<IdentityRole>();
     private List<string> _events = new();
     private IdentityServiceClient service;
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; }
 
     protected async override Task OnInitializedAsync()
     { 
@@ -50,6 +52,7 @@
     {
         DataRows = (await service.RolesAllAsync()).ToList();
         SetOverlay(false);
+        Snackbar.Add($"{DataRows.Count()} records listed", Severity.Success);
     }
 
     void Cancel()

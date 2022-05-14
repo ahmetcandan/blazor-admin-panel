@@ -1133,6 +1133,10 @@ namespace BlazorAdminPanel.Service.Client
         [Newtonsoft.Json.JsonProperty("concurrencyStamp", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string ConcurrencyStamp { get; set; }
 
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "13.15.10.0 (NJsonSchema v10.6.10.0 (Newtonsoft.Json v11.0.0.0))")]

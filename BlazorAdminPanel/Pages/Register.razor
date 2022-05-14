@@ -1,0 +1,76 @@
+﻿@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using BlazorAdminPanel.Model;
+@inject ISnackbar Snackbar
+@inject ProtectedLocalStorage ProtectedLocalStorage
+@inject IDialogService Dialog
+
+<MudDialog>
+    <DialogContent>    
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="Username" Label="Username" Variant="Variant.Text"></MudTextField>
+        </MudItem>    
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="Email" Label="Email" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="Password" Label="Password" Variant="Variant.Text" InputType="InputType.Password"></MudTextField>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="PasswordConfirm" Label="Password Confirm" Variant="Variant.Text" InputType="InputType.Password"></MudTextField>
+        </MudItem>
+        <MudSelect T="string" Label="Roles" MultiSelection="true" @bind-SelectedValues="SelectedRoles">
+            @foreach (var role in Roles)
+            {
+                <MudSelectItem T="string" Value="@role">@role</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Password) || string.IsNullOrEmpty(PasswordConfirm) || (Password != PasswordConfirm)">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IdentityServiceClient service;
+    private RegisterUserModel User;
+    private string Username;
+    private string Email;
+    private string Password;
+    private string PasswordConfirm;
+    private List<string> Roles = new List<string>() { };
+    private IEnumerable<string> SelectedRoles;
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    { 
+        var token = await ProtectedLocalStorage.GetAsync<TokenModel>("token");
+        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token))
+        {
+            service = new IdentityServiceClient(token.Value.Token);
+            Roles = (await service.RolesAllAsync()).Select(c => c.Name).ToList();
+        }
+        else
+            NavigationManager.NavigateTo("/login");
+    }
+
+    void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    async Task Submit()
+    {
+        await service.RegisterAsync(new RegisterUserModel
+        {
+            Username = Username,
+            Password = Password,
+            Email = Email,
+            Roles = SelectedRoles.ToList()
+        });
+        Snackbar.Add("Register user successful", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

@@ -20,9 +20,12 @@
 @code {
     private IdentityServiceClient service;
     private string RoleName;
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
-    [Parameter] public PageOpeningType Mode { get; set; }
-    [Parameter] public IdentityRole Data { get; set; }
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; }
+    [Parameter] 
+    public PageOpeningType Mode { get; set; }
+    [Parameter] 
+    public IdentityRole Data { get; set; }
 
     protected async override Task OnInitializedAsync()
     { 
@@ -58,6 +61,7 @@
                 Name = RoleName
             });
         }
+        Snackbar.Add("Save role successful", Severity.Success);
         MudDialog.Close(DialogResult.Ok(true));
     }
 }
