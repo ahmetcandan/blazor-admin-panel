@@ -6,7 +6,7 @@
 @inject ProtectedLocalStorage ProtectedLocalStorage
 @inject IDialogService Dialog
 
-<MudOverlay @bind-Visible="isVisible" DarkBackground="true"/>
+<MudOverlay @bind-Visible="isVisible" DarkBackground="true" />
 <MudDataGrid Items="@DataRows" Dense="true" Hover="true" Bordered="false" T="IdentityRole" Striped="true">
     <ToolBarContent>
         <MudFab Color="Color.Primary" OnClick="@(() => NewForm())" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" />
@@ -27,19 +27,19 @@
     private IEnumerable<IdentityRole> DataRows = new List<IdentityRole>();
     private List<string> _events = new();
     private IdentityServiceClient service;
-    [CascadingParameter] 
+    [CascadingParameter]
     MudDialogInstance MudDialog { get; set; }
 
     protected async override Task OnInitializedAsync()
-    { 
+    {
         var token = await ProtectedLocalStorage.GetAsync<TokenModel>("token");
-        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token))
+        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token) && token.Value.Expiration > DateTime.UtcNow)
         {
             service = new IdentityServiceClient(token.Value.Token);
             await GetAsync();
         }
         else
-            NavigationManager.NavigateTo("/login");
+            NavigationManager.NavigateTo("/login?return=roles");
     }
 
     public void SetOverlay(bool value)
@@ -50,9 +50,28 @@
 
     async Task GetAsync()
     {
-        DataRows = (await service.RolesAllAsync()).ToList();
-        SetOverlay(false);
-        Snackbar.Add($"{DataRows.Count()} records listed", Severity.Success);
+        try
+        {
+            var response = await service.RolesGETAsync();
+            if (response.Successful)
+            {
+                DataRows = response.Data.ToList();
+                Snackbar.Add($"{DataRows.Count()} records listed", Severity.Info);
+            }
+            else
+                Snackbar.Add(response.Message, Severity.Error);
+            SetOverlay(false);
+        }
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            if (ex.StatusCode == 401 || ex.StatusCode == 403)
+                NavigationManager.NavigateTo("/login?return=roles");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     void Cancel()

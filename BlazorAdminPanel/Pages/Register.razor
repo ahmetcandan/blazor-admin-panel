@@ -6,10 +6,10 @@
 @inject IDialogService Dialog
 
 <MudDialog>
-    <DialogContent>    
+    <DialogContent>
         <MudItem xs="12" sm="6" md="4">
             <MudTextField @bind-Value="Username" Label="Username" Variant="Variant.Text"></MudTextField>
-        </MudItem>    
+        </MudItem>
         <MudItem xs="12" sm="6" md="4">
             <MudTextField @bind-Value="Email" Label="Email" Variant="Variant.Text"></MudTextField>
         </MudItem>
@@ -41,19 +41,23 @@
     private string PasswordConfirm;
     private List<string> Roles = new List<string>() { };
     private IEnumerable<string> SelectedRoles;
-    [CascadingParameter] 
+    [CascadingParameter]
     MudDialogInstance MudDialog { get; set; }
 
     protected async override Task OnInitializedAsync()
-    { 
+    {
         var token = await ProtectedLocalStorage.GetAsync<TokenModel>("token");
-        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token))
+        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token) && token.Value.Expiration > DateTime.UtcNow)
         {
             service = new IdentityServiceClient(token.Value.Token);
-            Roles = (await service.RolesAllAsync()).Select(c => c.Name).ToList();
+            var rolesResponse = await service.RolesGETAsync();
+            if (rolesResponse.Successful)
+                Roles = rolesResponse.Data.Select(c => c.Name).ToList();
+            else
+                Snackbar.Add(rolesResponse.Message, Severity.Error);
         }
         else
-            NavigationManager.NavigateTo("/login");
+            NavigationManager.NavigateTo("/login?return=users");
     }
 
     void Cancel()
@@ -63,14 +67,28 @@
 
     async Task Submit()
     {
-        await service.RegisterAsync(new RegisterUserModel
+        try
         {
-            Username = Username,
-            Password = Password,
-            Email = Email,
-            Roles = SelectedRoles.ToList()
-        });
-        Snackbar.Add("Register user successful", Severity.Success);
-        MudDialog.Close(DialogResult.Ok(true));
+            var response = await service.RegisterAsync(new RegisterUserModel
+                {
+                    Username = Username,
+                    Password = Password,
+                    Email = Email,
+                    Roles = SelectedRoles.ToList()
+                });
+            Snackbar.Add(response.Message, response.Successful ? Severity.Success : Severity.Error);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            if (ex.StatusCode == 401 || ex.StatusCode == 403)
+                NavigationManager.NavigateTo("/login?return=users");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 }

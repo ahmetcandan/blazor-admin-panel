@@ -6,9 +6,9 @@
 @inject IDialogService Dialog
 
 <MudDialog>
-    <DialogContent>    
+    <DialogContent>
         <MudItem xs="12" sm="6" md="4">
-        <MudTextField @bind-Value="RoleName" Label="Role" Variant="Variant.Text"></MudTextField>
+            <MudTextField @bind-Value="RoleName" Label="Role" Variant="Variant.Text"></MudTextField>
         </MudItem>
     </DialogContent>
     <DialogActions>
@@ -20,20 +20,20 @@
 @code {
     private IdentityServiceClient service;
     private string RoleName;
-    [CascadingParameter] 
+    [CascadingParameter]
     MudDialogInstance MudDialog { get; set; }
-    [Parameter] 
+    [Parameter]
     public PageOpeningType Mode { get; set; }
-    [Parameter] 
+    [Parameter]
     public IdentityRole Data { get; set; }
 
     protected async override Task OnInitializedAsync()
-    { 
+    {
         var token = await ProtectedLocalStorage.GetAsync<TokenModel>("token");
-        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token))
+        if (token.Success && token.Value != null && !string.IsNullOrEmpty(token.Value.Token) && token.Value.Expiration > DateTime.UtcNow)
             service = new IdentityServiceClient(token.Value.Token);
         else
-            NavigationManager.NavigateTo("/login");
+            NavigationManager.NavigateTo("/login?return=roles");
 
         if (Mode == PageOpeningType.Edit)
             RoleName = Data.Name;
@@ -46,22 +46,38 @@
 
     async Task Submit()
     {
-        if (Mode == PageOpeningType.Edit)
+        try
         {
-            await service.RolesPUTAsync(new RoleModel
+            ResponseModel response = null;
+            if (Mode == PageOpeningType.Edit)
             {
-                Id = Data == null ? null : Data.Id,
-                Name = RoleName
-            });
+                response = await service.RolesPUTAsync(new RoleModel
+                    {
+                        Id = Data == null ? null : Data.Id,
+                        Name = RoleName
+                    });
+                Snackbar.Add(response.Message, response.Successful ? Severity.Success : Severity.Error);
+            }
+            else if (Mode == PageOpeningType.New)
+            {
+                response = await service.RolesPOSTAsync(new CreateRoleModel
+                    {
+                        Name = RoleName
+                    });
+                Snackbar.Add(response.Message, response.Successful ? Severity.Success : Severity.Error);
+            }
+            MudDialog.Close(DialogResult.Ok(true));
         }
-        else if (Mode == PageOpeningType.New)
+
+        catch (ApiException ex)
         {
-            await service.RolesPOSTAsync(new CreateRoleModel
-            {
-                Name = RoleName
-            });
+            Snackbar.Add(ex.Message, Severity.Error);
+            if (ex.StatusCode == 401 || ex.StatusCode == 403)
+                NavigationManager.NavigateTo("/login?return=roles");
         }
-        Snackbar.Add("Save role successful", Severity.Success);
-        MudDialog.Close(DialogResult.Ok(true));
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 }

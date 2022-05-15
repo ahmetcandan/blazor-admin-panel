@@ -7,9 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MudBlazor" Version="6.0.9" />
+    <PackageReference Include="MudBlazor" Version="6.0.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="RestSharp" Version="107.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MudBlazor.ThemeManager">
+      <HintPath>bin\Debug\net6.0\MudBlazor.ThemeManager.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

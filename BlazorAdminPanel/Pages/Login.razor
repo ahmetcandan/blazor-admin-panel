@@ -3,7 +3,7 @@
 @inject ISnackbar Snackbar
 @inject ProtectedLocalStorage ProtectedLocalStorage
 
-<MudOverlay @bind-Visible="isVisible" DarkBackground="true"/>
+<MudOverlay @bind-Visible="isVisible" DarkBackground="true" />
 <MudGrid>
     <MudItem xs="12" sm="6" md="4">
         <MudTextField @bind-Value="Username" Label="Username" Variant="Variant.Text"></MudTextField>
@@ -30,19 +30,40 @@
     private async Task LoginAsync()
     {
         SetOverlay(true);
-        var service = new IdentityServiceClient();
-        var token = await service.LoginAsync(new LoginModel
-            {
-                Username = Username,
-                Password = Password
-            });
-        if (token.Token != null && !string.IsNullOrEmpty(token.Token))
+        try
         {
-            await ProtectedLocalStorage.SetAsync("token", token);
-            Snackbar.Add("Login successful", Severity.Success);
+            var service = new IdentityServiceClient();
+            var tokenResponse = await service.TokenAsync(new LoginModel
+                {
+                    Username = Username,
+                    Password = Password
+                });
+            if (tokenResponse.Successful)
+            {
+                await ProtectedLocalStorage.SetAsync("token", tokenResponse.Data);
+                Dictionary<string, string> parameters = new Dictionary<string, string>();
+                var queryString = NavigationManager.Uri.Substring((NavigationManager.BaseUri + "login/").Length).Split("&");
+                foreach (var item in queryString)
+                {
+                    var pr = item.Split("=");
+                    parameters.Add(pr[0], pr[1]);
+                }
+                if (parameters.ContainsKey("return"))
+                    NavigationManager.NavigateTo("/" + parameters["return"]);
+
+                Snackbar.Add(tokenResponse.Message, Severity.Success);
+            }
+            else
+                Snackbar.Add($"Login error: {tokenResponse.Message}", Severity.Error);
         }
-        else
-            Snackbar.Add($"Login error: {token.Message}", Severity.Error);
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
         SetOverlay(false);
     }
 }
